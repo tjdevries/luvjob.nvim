@@ -97,6 +97,10 @@ function luvjob:start()
   return self.handle, self.pid
 end
 
+function luvjob:pid()
+  return self.pid
+end
+
 function luvjob:wait()
   if self.handle == nil then
     vim.api.nvim_err_writeln(vim.inspect(self))

@@ -1,6 +1,8 @@
 # luvjob.nvim
 
-LibUV Jobs for Nvim in Lua 
+LibUV Jobs for Nvim in Lua.
+
+The object of the plugin is to provide a compatible interface to `jobstart` and associated `job*` commands defined in Neovim in Lua, without having to move back and forth between Lua & VimL.
 
 
 ## Example
