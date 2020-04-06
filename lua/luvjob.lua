@@ -84,7 +84,6 @@ end
 function luvjob:start()
   local options = self:create_options()
 
-  print("Command:", options.command, "Args:", vim.inspect(options.args))
   self.handle, self.pid = vim.loop.spawn(options.command, options, vim.schedule_wrap(luvjob.shutdown_factory(self)))
 
   if self.on_stdout then
