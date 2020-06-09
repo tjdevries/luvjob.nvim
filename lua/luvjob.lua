@@ -51,6 +51,9 @@ function luvjob.shutdown_factory(child)
 end
 
 function luvjob:shutdown(code, signal)
+  self.code = code
+  self.signal = signal
+
   if self._user_on_exit then
     self:_user_on_exit(code, signal)
   end
@@ -126,7 +129,7 @@ function luvjob:start()
     end
   end))
 
-  return self.handle, self.pid
+  return self
 end
 
 function luvjob:stdout_result()
@@ -157,10 +160,27 @@ function luvjob:wait()
     return
   end
 
-  while self.handle:is_active() or not self.is_shutdown do
-    vim.cmd("sleep 10m")
+  while not vim.wait(100, function() return not self.handle:is_active() or self.is_shutdown end, 10) do
   end
+
+  return self
 end
+
+function luvjob:co_wait(wait_time)
+  wait_time = wait_time or 5
+
+  if self.handle == nil then
+    vim.api.nvim_err_writeln(vim.inspect(self))
+    return
+  end
+
+  while not vim.wait(wait_time, function() return self.is_shutdown end) do
+    coroutine.yield()
+  end
+
+  return self
+end
+
 
 function luvjob.accumulate_results(results)
   return function(err, data)
@@ -181,8 +201,6 @@ function luvjob.accumulate_results(results)
 
     local line, start, found_newline
     while true do
-      -- print(data)
-
       start = string.find(data, "\n") or #data
       found_newline = string.find(data, "\n")
 
