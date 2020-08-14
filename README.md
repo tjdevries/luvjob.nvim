@@ -1,3 +1,7 @@
+# NOTE: THIS IS DEPRECATED. SEE github.com/nvim-lua/plenary.nvim
+
+I've decided to combine this with `plenary.nvim` going forward.
+
 # luvjob.nvim
 
 LibUV Jobs for Nvim in Lua.

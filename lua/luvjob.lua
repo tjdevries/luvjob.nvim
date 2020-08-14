@@ -105,7 +105,7 @@ function luvjob:start()
     vim.schedule_wrap(luvjob.shutdown_factory(self))
   )
 
-  self.stdout:read_start(vim.schedule_wrap(function(err, data)
+  self.stdout:read_start(function(err, data)
     if data ~= nil then
       local subbed = data:gsub("\r", "")
       self._raw_stdout  = self._raw_stdout .. subbed
@@ -113,11 +113,12 @@ function luvjob:start()
     end
 
     if self._user_on_stdout then
-      self._user_on_stdout(err, data)
+      -- self._user_on_stdout(err, data)
+      vim.schedule(function() self._user_on_stdout(err, data) end)
     end
-  end))
+  end)
 
-  self.stderr:read_start(vim.schedule_wrap(function(err, data)
+  self.stderr:read_start(function(err, data)
     if data ~= nil then
       local subbed = data:gsub("\r", "")
       self._raw_stderr  = self._raw_stderr .. subbed
@@ -125,9 +126,10 @@ function luvjob:start()
     end
 
     if self._user_on_stderr then
-      self._user_on_stderr(err, data)
+      -- self._user_on_stderr(err, data)
+      vim.schedule(function () self._user_on_stderr(err, data) end)
     end
-  end))
+  end)
 
   return self
 end
@@ -253,6 +255,47 @@ function luvjob.join(...)
     -- vim.cmd.sleep(10)
     vim.cmd("sleep 100m")
   end
+end
+
+local _request_id = 0
+local _request_status = {}
+
+function luvjob.chain(...)
+  _request_id = _request_id + 1
+  _request_status[_request_id] = false
+
+  local jobs = {...}
+
+  for index, job in ipairs(jobs) do
+    if index ~= 1 then
+      local prev_job = jobs[index - 1]
+      local original_on_exit = prev_job._user_on_exit
+      prev_job._user_on_exit = function(self, err, data)
+        if original_on_exit then
+          original_on_exit(self, err, data)
+        end
+
+        job:start()
+      end
+    end
+  end
+
+  local last_on_exit = jobs[#jobs]._user_on_exit
+  jobs[#jobs]._user_on_exit = function(self, err, data)
+    if last_on_exit then
+      last_on_exit(self, err, data)
+    end
+
+    _request_status[_request_id] = true
+  end
+
+  jobs[1]:start()
+
+  return _request_id
+end
+
+function luvjob.chain_status(id)
+  return _request_status[id]
 end
 
 return luvjob
